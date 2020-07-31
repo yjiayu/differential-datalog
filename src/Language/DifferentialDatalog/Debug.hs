@@ -30,6 +30,7 @@ Description: Helper functions for adding debug hooks to a 'DatalogProgram'.
 module Language.DifferentialDatalog.Debug (
     debugAggregateFunctions,
     debugUpdateRHSRules,
+    debugUpdateRHSRulesWithoutHooks,
 )
 where
 
@@ -182,12 +183,17 @@ insertRHSInspectDebugHooks d rlIdx rule =
 
 debugUpdateRHSRules :: DatalogProgram -> Int -> Rule -> [RuleRHS]
 debugUpdateRHSRules d rlIdx rule =
+  let rhs = debugUpdateRHSRulesWithoutHooks d rlIdx rule
+  in insertRHSInspectDebugHooks d rlIdx rule {ruleRHS = rhs}
+
+debugUpdateRHSRulesWithoutHooks :: DatalogProgram -> Int -> Rule -> [RuleRHS]
+debugUpdateRHSRulesWithoutHooks d rlIdx rule =
   let
     -- First pass updates RHSLiteral without any binding with a binding.
     rhs =  map addBindingToRHSLiteral $ zip (ruleRHS rule) [0..]
     -- Second pass updates RHSAggregate to use the debug function (so that inputs are not dropped).
-    rhs' = concatMap (updateRHSAggregate d rule{ruleRHS = rhs} rlIdx) [0..length rhs - 1]
-  in insertRHSInspectDebugHooks d rlIdx rule {ruleRHS = rhs'}
+  in concatMap (updateRHSAggregate d rule{ruleRHS = rhs} rlIdx) [0..length rhs - 1]
+
 
 -- Insert an aggregate function that wraps the original function used in the aggregate term.
 -- For example, if an aggregate operator uses std.group_max(), i.e., var c = Aggregate((a), group_max(b)).
